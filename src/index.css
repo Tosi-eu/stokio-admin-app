@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --background: 210 42% 98%;
+  --foreground: 222 38% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 38% 14%;
+  --primary: 191 76% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 214 28% 93%;
+  --secondary-foreground: 222 32% 22%;
+  --muted: 210 26% 94%;
+  --muted-foreground: 215 16% 42%;
+  --border: 214 20% 88%;
+  --ring: 191 72% 42%;
+  --radius: 0.75rem;
+
+  --shadow-soft:
+    0 2px 16px -4px hsl(215 45% 32% / 0.12),
+    0 8px 32px -12px hsl(222 28% 10% / 0.08);
+}
+
+/* Temas */
+:root[data-theme="ocean"] {
+  --background: 205 55% 97%;
+  --foreground: 222 38% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 38% 14%;
+  --primary: 191 82% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 203 34% 92%;
+  --secondary-foreground: 222 32% 22%;
+  --muted: 203 30% 94%;
+  --muted-foreground: 215 16% 42%;
+  --border: 206 22% 86%;
+  --ring: 191 78% 40%;
+}
+
+:root[data-theme="slate"] {
+  --background: 220 24% 97%;
+  --foreground: 222 38% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 38% 14%;
+  --primary: 220 34% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 18% 92%;
+  --secondary-foreground: 222 32% 22%;
+  --muted: 220 16% 94%;
+  --muted-foreground: 215 16% 42%;
+  --border: 220 14% 86%;
+  --ring: 220 34% 38%;
+}
+
+:root[data-theme="dark"] {
+  --background: 222 22% 10%;
+  --foreground: 210 20% 96%;
+  --card: 222 22% 12%;
+  --card-foreground: 210 20% 96%;
+  --primary: 191 78% 48%;
+  --primary-foreground: 222 22% 10%;
+  --secondary: 222 16% 18%;
+  --secondary-foreground: 210 20% 96%;
+  --muted: 222 14% 16%;
+  --muted-foreground: 215 14% 70%;
+  --border: 222 14% 22%;
+  --ring: 191 78% 48%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 100% -20%,
+      hsl(205 50% 88% / 0.55),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 100% 60% at 0% 100%,
+      hsl(215 45% 86% / 0.4),
+      transparent 45%
+    ),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
