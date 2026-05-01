@@ -9,5 +9,15 @@ contextBridge.exposeInMainWorld("adminStock", {
       body,
     });
   },
+  upload: async ({ path, apiKey, filename, contentType, fieldName, bytes }) => {
+    return ipcRenderer.invoke("admin-stock:upload", {
+      path,
+      apiKey,
+      filename,
+      contentType,
+      fieldName,
+      bytes,
+    });
+  },
 });
 

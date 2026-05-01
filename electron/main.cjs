@@ -56,6 +56,30 @@ app.whenReady().then(() => {
     return { ok: res.ok, status: res.status, statusText: res.statusText, text };
   });
 
+  ipcMain.handle("admin-stock:upload", async (_evt, args) => {
+    const pathname = String(args?.path || "");
+    const apiKey = String(args?.apiKey || "").trim();
+    const filename = String(args?.filename || "upload.bin");
+    const contentType = String(args?.contentType || "application/octet-stream");
+    const fieldName = String(args?.fieldName || "file");
+    const bytes = args?.bytes;
+    if (!apiKey) throw new Error("Chave ausente");
+    if (!bytes) throw new Error("Arquivo ausente");
+
+    const url = safeUrl(pathname);
+    const form = new FormData();
+    const blob = new Blob([new Uint8Array(bytes)], { type: contentType });
+    form.append(fieldName, blob, filename);
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "X-API-Key": apiKey },
+      body: form,
+    });
+    const text = await res.text();
+    return { ok: res.ok, status: res.status, statusText: res.statusText, text };
+  });
+
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

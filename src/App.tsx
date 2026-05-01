@@ -121,6 +121,9 @@ export function App() {
   const [selectedSlug, setSelectedSlug] = useState("");
   const [newContractCode, setNewContractCode] = useState("");
   const [boundLogin, setBoundLogin] = useState("");
+  const [xlsxFile, setXlsxFile] = useState<File | null>(null);
+  const [dumpFile, setDumpFile] = useState<File | null>(null);
+  const [birthDateFallback, setBirthDateFallback] = useState("");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, apiKey);
@@ -267,6 +270,106 @@ export function App() {
     newContractCode,
     selectedSlug,
   ]);
+
+  const uploadXlsx = useCallback(async () => {
+    if (!authenticated) return;
+    if (!selectedSlug) {
+      toast.error("Selecione um tenant");
+      return;
+    }
+    if (!xlsxFile) {
+      toast.error("Selecione uma planilha (.xlsx)");
+      return;
+    }
+    setLoading(true);
+    try {
+      const buf = new Uint8Array(await xlsxFile.arrayBuffer());
+      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/xlsx`;
+      const out = await window.adminStock?.upload?.({
+        path,
+        apiKey,
+        filename: xlsxFile.name || "import.xlsx",
+        contentType:
+          xlsxFile.type ||
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        fieldName: "file",
+        bytes: buf,
+      });
+      if (!out) {
+        toast.error("Upload indisponível", {
+          description: "A janela precisa estar rodando via Electron.",
+        });
+        return;
+      }
+      if (!out.ok) {
+        toast.error("Erro ao importar XLSX", { description: out.text });
+        return;
+      }
+      toast.success("Planilha importada");
+      setXlsxFile(null);
+      await connect();
+    } catch (e: unknown) {
+      toast.error("Erro", {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [apiKey, authenticated, connect, selectedSlug, xlsxFile]);
+
+  const uploadPgDump = useCallback(async () => {
+    if (!authenticated) return;
+    if (!selectedSlug) {
+      toast.error("Selecione um tenant");
+      return;
+    }
+    if (!dumpFile) {
+      toast.error("Selecione um dump (.sql ou .sql.gz)");
+      return;
+    }
+    setLoading(true);
+    try {
+      const buf = new Uint8Array(await dumpFile.arrayBuffer());
+      const qs = birthDateFallback.trim()
+        ? `?birthDateFallback=${encodeURIComponent(birthDateFallback.trim())}`
+        : "";
+      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/pg-dump${qs}`;
+      const out = await window.adminStock?.upload?.({
+        path,
+        apiKey,
+        filename: dumpFile.name || "dump.sql",
+        contentType: dumpFile.type || "application/sql",
+        fieldName: "file",
+        bytes: buf,
+      });
+      if (!out) {
+        toast.error("Upload indisponível", {
+          description: "A janela precisa estar rodando via Electron.",
+        });
+        return;
+      }
+      if (!out.ok) {
+        toast.error("Erro ao importar dump", { description: out.text });
+        return;
+      }
+      let summary = "";
+      try {
+        const j = JSON.parse(out.text) as any;
+        if (j?.summary) summary = JSON.stringify(j.summary);
+      } catch {
+        // ignore
+      }
+      toast.success("Dump importado", summary ? { description: summary } : undefined);
+      setDumpFile(null);
+      await connect();
+    } catch (e: unknown) {
+      toast.error("Erro", {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [apiKey, authenticated, birthDateFallback, connect, dumpFile, selectedSlug]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6">
@@ -474,6 +577,69 @@ export function App() {
                 >
                   Guardar alteração
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle>Upload de planilhas / dump</CardTitle>
+                <CardDescription>
+                  Importação por tenant (slug). Use XLSX para importar dados e pg_dump
+                  (.sql/.sql.gz) para anexar dados operacionais.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="xlsx">Planilha (.xlsx)</Label>
+                    <Input
+                      id="xlsx"
+                      type="file"
+                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      disabled={loading}
+                      onChange={(e) =>
+                        setXlsxFile(e.target.files?.[0] ?? null)
+                      }
+                    />
+                    <Button
+                      variant="secondary"
+                      disabled={loading || !selectedSlug || !xlsxFile}
+                      onClick={() => void uploadXlsx()}
+                    >
+                      Importar XLSX
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dump">Dump (.sql / .sql.gz)</Label>
+                    <Input
+                      id="dump"
+                      type="file"
+                      accept=".sql,.gz,application/sql,application/gzip"
+                      disabled={loading}
+                      onChange={(e) =>
+                        setDumpFile(e.target.files?.[0] ?? null)
+                      }
+                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="birth">birthDateFallback (opcional)</Label>
+                      <Input
+                        id="birth"
+                        placeholder="1970-01-03"
+                        value={birthDateFallback}
+                        onChange={(e) => setBirthDateFallback(e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                    <Button
+                      variant="secondary"
+                      disabled={loading || !selectedSlug || !dumpFile}
+                      onClick={() => void uploadPgDump()}
+                    >
+                      Importar dump
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

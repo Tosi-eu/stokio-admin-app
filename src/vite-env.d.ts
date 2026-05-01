@@ -23,6 +23,19 @@ declare global {
         statusText: string;
         text: string;
       }>;
+      upload: (args: {
+        path: string;
+        apiKey: string;
+        filename: string;
+        contentType?: string;
+        fieldName?: string;
+        bytes: number[] | Uint8Array;
+      }) => Promise<{
+        ok: boolean;
+        status: number;
+        statusText: string;
+        text: string;
+      }>;
     };
   }
 }
