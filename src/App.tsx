@@ -284,7 +284,7 @@ export function App() {
     setLoading(true);
     try {
       const buf = new Uint8Array(await xlsxFile.arrayBuffer());
-      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/xlsx`;
+      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/xlsx/async`;
       const out = await window.adminStock?.upload?.({
         path,
         apiKey,
@@ -305,9 +305,54 @@ export function App() {
         toast.error("Erro ao importar XLSX", { description: out.text });
         return;
       }
-      toast.success("Planilha importada");
-      setXlsxFile(null);
-      await connect();
+      let jobId: string | null = null;
+      try {
+        const j = JSON.parse(out.text) as any;
+        if (typeof j?.jobId === "string") jobId = j.jobId;
+      } catch {
+        // ignore
+      }
+      if (!jobId) {
+        toast.error("Resposta inválida do servidor", {
+          description: "Não foi possível obter o jobId da importação.",
+        });
+        return;
+      }
+
+      toast.message("Importação enfileirada", {
+        description: `Job ${jobId}. Aguardando processamento…`,
+      });
+
+      const statusPath = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/jobs/${encodeURIComponent(jobId)}`;
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < 1000 * 60 * 60) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const s = await window.adminStock?.request?.({
+          path: statusPath,
+          apiKey,
+        });
+        if (!s?.ok) continue;
+        try {
+          const job = JSON.parse(s.text) as any;
+          if (job?.status === "succeeded") {
+            toast.success("Planilha importada");
+            setXlsxFile(null);
+            await connect();
+            return;
+          }
+          if (job?.status === "failed") {
+            toast.error("Importação falhou", {
+              description: String(job?.error ?? "Erro desconhecido"),
+            });
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      toast.message("Importação em andamento", {
+        description: "O job ainda está processando. Você pode aguardar e tentar novamente.",
+      });
     } catch (e: unknown) {
       toast.error("Erro", {
         description: e instanceof Error ? e.message : String(e),
@@ -333,7 +378,7 @@ export function App() {
       const qs = birthDateFallback.trim()
         ? `?birthDateFallback=${encodeURIComponent(birthDateFallback.trim())}`
         : "";
-      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/pg-dump${qs}`;
+      const path = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/pg-dump/async${qs}`;
       const out = await window.adminStock?.upload?.({
         path,
         apiKey,
@@ -352,16 +397,60 @@ export function App() {
         toast.error("Erro ao importar dump", { description: out.text });
         return;
       }
-      let summary = "";
+      let jobId: string | null = null;
       try {
         const j = JSON.parse(out.text) as any;
-        if (j?.summary) summary = JSON.stringify(j.summary);
+        if (typeof j?.jobId === "string") jobId = j.jobId;
       } catch {
         // ignore
       }
-      toast.success("Dump importado", summary ? { description: summary } : undefined);
-      setDumpFile(null);
-      await connect();
+      if (!jobId) {
+        toast.error("Resposta inválida do servidor", {
+          description: "Não foi possível obter o jobId da importação.",
+        });
+        return;
+      }
+
+      toast.message("Importação enfileirada", {
+        description: `Job ${jobId}. Aguardando processamento…`,
+      });
+
+      const statusPath = `/admin/tenants/by-slug/${encodeURIComponent(selectedSlug)}/import/jobs/${encodeURIComponent(jobId)}`;
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < 1000 * 60 * 60) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const s = await window.adminStock?.request?.({
+          path: statusPath,
+          apiKey,
+        });
+        if (!s?.ok) continue;
+        try {
+          const job = JSON.parse(s.text) as any;
+          if (job?.status === "succeeded") {
+            let summary = "";
+            const result = job?.result_json;
+            if (result?.summary) summary = JSON.stringify(result.summary);
+            toast.success(
+              "Dump importado",
+              summary ? { description: summary } : undefined,
+            );
+            setDumpFile(null);
+            await connect();
+            return;
+          }
+          if (job?.status === "failed") {
+            toast.error("Importação falhou", {
+              description: String(job?.error ?? "Erro desconhecido"),
+            });
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      toast.message("Importação em andamento", {
+        description: "O job ainda está processando. Você pode aguardar e tentar novamente.",
+      });
     } catch (e: unknown) {
       toast.error("Erro", {
         description: e instanceof Error ? e.message : String(e),
