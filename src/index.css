@@ -73,6 +73,8 @@ body {
 
 body {
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background:
     radial-gradient(
       ellipse 120% 80% at 100% -20%,

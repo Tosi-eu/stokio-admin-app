@@ -15,6 +15,8 @@ const buttonVariants = cva(
           "bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:bg-[hsl(var(--secondary)/0.85)] border border-[hsl(var(--border))]",
         outline:
           "border border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]",
+        ghost:
+          "text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]",
       },
       size: {
         default: "h-10 px-4 py-2",
