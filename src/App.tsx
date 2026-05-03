@@ -5,6 +5,7 @@ import { LoginScreen } from "@/screens/LoginScreen";
 import { InfraHealthScreen } from "@/screens/InfraHealthScreen";
 import { SystemSettings } from "@/screens/SystemSettings";
 import { TenantsWorkspace } from "@/screens/TenantsWorkspace";
+import { ErrorEventsScreen } from "@/screens/ErrorEventsScreen";
 
 export function App() {
   const admin = useAdminApp();
@@ -44,6 +45,11 @@ export function App() {
           />
         ) : admin.adminTab === "infra" ? (
           <InfraHealthScreen
+            request={admin.configRequest}
+            disabled={admin.loading}
+          />
+        ) : admin.adminTab === "errors" ? (
+          <ErrorEventsScreen
             request={admin.configRequest}
             disabled={admin.loading}
           />

@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE?: string;
   readonly VITE_X_API_KEY?: string;
+  /** Base URL da UI Temporal (ex.: http://localhost:8080) — usado para links a workflows. */
+  readonly VITE_TEMPORAL_WEB_URL?: string;
 }
 
 interface ImportMeta {

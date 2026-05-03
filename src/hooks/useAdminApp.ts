@@ -40,9 +40,9 @@ export function useAdminApp() {
   const [xlsxFile, setXlsxFile] = useState<File | null>(null);
   const [dumpFile, setDumpFile] = useState<File | null>(null);
   const [birthDateFallback, setBirthDateFallback] = useState("");
-  const [adminTab, setAdminTab] = useState<"tenants" | "system" | "infra">(
-    "tenants",
-  );
+  const [adminTab, setAdminTab] = useState<
+    "tenants" | "system" | "infra" | "errors"
+  >("tenants");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_API, apiKey);

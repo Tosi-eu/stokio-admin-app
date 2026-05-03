@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import {
   Activity,
+  AlertTriangle,
   Building2,
   LogOut,
   RefreshCw,
   Settings2,
+  type LucideIcon,
 } from "lucide-react";
 
 import { LogoMark } from "@/components/logo";
@@ -13,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-type Tab = "tenants" | "system" | "infra";
+type Tab = "tenants" | "system" | "infra" | "errors";
 
 type AppShellProps = {
   children: ReactNode;
@@ -26,10 +28,11 @@ type AppShellProps = {
   onDisconnect: () => void;
 };
 
-const navItems: { id: Tab; label: string; icon: typeof Building2 }[] = [
+const navItems: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "tenants", label: "Tenants", icon: Building2 },
   { id: "system", label: "Sistema", icon: Settings2 },
   { id: "infra", label: "Infra", icon: Activity },
+  { id: "errors", label: "Erros", icon: AlertTriangle },
 ];
 
 export function AppShell({
