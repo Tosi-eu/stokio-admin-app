@@ -2,6 +2,7 @@ import { AppToaster } from "@/components/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAdminApp } from "@/hooks/useAdminApp";
 import { LoginScreen } from "@/screens/LoginScreen";
+import { InfraHealthScreen } from "@/screens/InfraHealthScreen";
 import { SystemSettings } from "@/screens/SystemSettings";
 import { TenantsWorkspace } from "@/screens/TenantsWorkspace";
 
@@ -38,6 +39,11 @@ export function App() {
       >
         {admin.adminTab === "system" ? (
           <SystemSettings
+            request={admin.configRequest}
+            disabled={admin.loading}
+          />
+        ) : admin.adminTab === "infra" ? (
+          <InfraHealthScreen
             request={admin.configRequest}
             disabled={admin.loading}
           />

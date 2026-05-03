@@ -45,6 +45,11 @@ export type SystemConfigDto = {
     manualCooldownSuccessSec: number;
     manualCooldownErrorSec: number;
   };
+  scheduledBackup: {
+    enabled: boolean;
+    cronExpression: string;
+    timezone: string;
+  };
   logging: { level: string; format: "json" | "pretty" };
   tenantImport: { pgDumpBirthDateFallback: string };
 };
@@ -88,6 +93,7 @@ export function SystemSettings({
   const formId = useId();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [backupRunning, setBackupRunning] = useState(false);
   const [cfg, setCfg] = useState<SystemConfigDto | null>(null);
   const [originsText, setOriginsText] = useState("");
 
@@ -111,6 +117,11 @@ export function SystemSettings({
         ...body.system,
         tenantImport: body.system.tenantImport ?? {
           pgDumpBirthDateFallback: "1970-01-01",
+        },
+        scheduledBackup: body.system.scheduledBackup ?? {
+          enabled: true,
+          cronExpression: "0 8-18/2 * * *",
+          timezone: "America/Sao_Paulo",
         },
       });
       setOriginsText(body.system.cors.allowedOrigins.join("\n"));
@@ -154,7 +165,13 @@ export function SystemSettings({
       }
       const body = (await res.json()) as AdminConfigResponse;
       if (body.system) {
-        setCfg(body.system);
+        setCfg({
+          ...body.system,
+          tenantImport: body.system.tenantImport ?? {
+            pgDumpBirthDateFallback: "1970-01-01",
+          },
+          scheduledBackup: body.system.scheduledBackup ?? next.scheduledBackup,
+        });
         setOriginsText(body.system.cors.allowedOrigins.join("\n"));
       }
       toast.success("Configuração guardada");
@@ -719,6 +736,150 @@ export function SystemSettings({
                   />
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Agendamento — backup do sistema (Temporal)</CardTitle>
+            <CardDescription>
+              <code className="rounded bg-[hsl(var(--muted))] px-1 py-0.5 text-xs">
+                pg_dump
+              </code>{" "}
+              comprimido e envio ao armazenamento quando configurado. Ao alterar o cron ou o
+              fuso, volte a executar o job «temporal-init» no Compose para actualizar o Temporal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-[hsl(var(--foreground))]">
+                  Backup manual
+                </p>
+                <FieldHint>
+                  Enfileira o workflow{" "}
+                  <code className="rounded bg-[hsl(var(--muted))] px-1 text-xs">
+                    systemBackupCronWorkflow
+                  </code>{" "}
+                  no Temporal (execução assíncrona no worker).
+                </FieldHint>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={disabled || loading || backupRunning}
+                className="shrink-0"
+                onClick={() => {
+                  void (async () => {
+                    setBackupRunning(true);
+                    try {
+                      const res = await request("/admin/backup/run", {
+                        method: "POST",
+                        body: JSON.stringify({}),
+                      });
+                      const j = (await res.json().catch(() => ({}))) as {
+                        error?: string;
+                        workflowId?: string;
+                        runId?: string;
+                        message?: string;
+                      };
+                      if (!res.ok) {
+                        throw new Error(j?.error ?? `HTTP ${res.status}`);
+                      }
+                      toast.success("Backup enfileirado", {
+                        description:
+                          typeof j?.workflowId === "string"
+                            ? `Workflow ${j.workflowId}`
+                            : j?.message,
+                      });
+                    } catch (e: unknown) {
+                      toast.error("Falha ao iniciar backup", {
+                        description:
+                          e instanceof Error ? e.message : String(e),
+                      });
+                    } finally {
+                      setBackupRunning(false);
+                    }
+                  })();
+                }}
+              >
+                {backupRunning ? "A enfileirar…" : "Executar backup agora"}
+              </Button>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.35)] p-4 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-[hsl(var(--border))]"
+                checked={cfg.scheduledBackup.enabled}
+                onChange={(e) =>
+                  setCfg({
+                    ...cfg,
+                    scheduledBackup: {
+                      ...cfg.scheduledBackup,
+                      enabled: e.target.checked,
+                    },
+                  })
+                }
+                disabled={fieldDisabled}
+              />
+              <span>
+                <span className="font-medium text-[hsl(var(--foreground))]">
+                  Activar backup agendado
+                </span>
+                <FieldHint className="mt-1">
+                  Desligado: o schedule no Temporal fica em pausa (não remove o agendamento).
+                </FieldHint>
+              </span>
+            </label>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${formId}-backup-cron`}>Expressão cron</Label>
+              <FieldHint>
+                Por defeito: a cada 2 horas entre 8h e 18h no fuso indicado abaixo (
+                <code className="rounded bg-[hsl(var(--muted))] px-1 text-xs">0 8-18/2 * * *</code>
+                ).
+              </FieldHint>
+              <Input
+                id={`${formId}-backup-cron`}
+                value={cfg.scheduledBackup.cronExpression}
+                onChange={(e) =>
+                  setCfg({
+                    ...cfg,
+                    scheduledBackup: {
+                      ...cfg.scheduledBackup,
+                      cronExpression: e.target.value,
+                    },
+                  })
+                }
+                placeholder="0 8-18/2 * * *"
+                disabled={fieldDisabled}
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${formId}-backup-tz`}>Timezone (IANA)</Label>
+              <FieldHint>
+                Usado pelo Temporal na expressão cron (ex.: horário comercial em BRT).
+              </FieldHint>
+              <Input
+                id={`${formId}-backup-tz`}
+                value={cfg.scheduledBackup.timezone}
+                onChange={(e) =>
+                  setCfg({
+                    ...cfg,
+                    scheduledBackup: {
+                      ...cfg.scheduledBackup,
+                      timezone: e.target.value,
+                    },
+                  })
+                }
+                placeholder="America/Sao_Paulo"
+                disabled={fieldDisabled}
+                autoComplete="off"
+              />
             </div>
           </CardContent>
         </Card>

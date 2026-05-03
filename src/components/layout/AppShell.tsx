@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  Activity,
   Building2,
   LogOut,
   RefreshCw,
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-type Tab = "tenants" | "system";
+type Tab = "tenants" | "system" | "infra";
 
 type AppShellProps = {
   children: ReactNode;
@@ -28,6 +29,7 @@ type AppShellProps = {
 const navItems: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "tenants", label: "Tenants", icon: Building2 },
   { id: "system", label: "Sistema", icon: Settings2 },
+  { id: "infra", label: "Infra", icon: Activity },
 ];
 
 export function AppShell({
